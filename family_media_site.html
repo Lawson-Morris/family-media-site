@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Family Media Gallery</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f9fafb;
+      padding: 20px;
+      margin: 0;
+    }
+    h2 {
+      text-align: center;
+      color: #333;
+    }
+    .login {
+      max-width: 300px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .login input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .login button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 15px;
+      background-color: #007bff;
+      border: none;
+      color: white;
+      font-size: 16px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .login button:hover {
+      background-color: #0056b3;
+    }
+    form.upload {
+      margin: 20px auto;
+      max-width: 500px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    form.upload input[type="file"] {
+      margin-bottom: 10px;
+    }
+    form.upload button {
+      background-color: #28a745;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    form.upload button:hover {
+      background-color: #1e7e34;
+    }
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-top: 30px;
+    }
+    .gallery-item {
+      overflow: hidden;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease;
+      background: white;
+      text-align: center;
+      padding: 5px;
+    }
+    .gallery-item:hover {
+      transform: scale(1.1);
+    }
+    .gallery-item img,
+    .gallery-item video {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 10px;
+    }
+    .uploader-name {
+      font-size: 0.9em;
+      margin-top: 5px;
+      color: #555;
+    }
+    .upload-date {
+      font-size: 0.8em;
+      color: #888;
+    }
+    .logout-button {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background-color: #dc3545;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .logout-button:hover {
+      background-color: #c82333;
+    }
+  </style>
+</head>
+<body>
+  <div class="login" id="login-form">
+    <h2>Login</h2>
+    <input type="text" id="username" placeholder="Enter your name" />
+    <input type="password" id="password" placeholder="Enter password" />
+    <button onclick="checkPassword()">Login</button>
+  </div>
+
+  <div id="content" style="display: none">
+    <button class="logout-button" onclick="logout()">Logout</button>
+    <h2>Family Media Gallery</h2>
+    <div id="upload-section">
+      <form class="upload" action="http://192.168.0.46:3000/upload" method="post" enctype="multipart/form-data" onsubmit="appendUsername(event)">
+        <input type="file" name="media" accept="image/*,video/*" multiple required />
+        <input type="hidden" name="username" id="hidden-username" />
+        <button type="submit">Upload</button>
+      </form>
+    </div>
+    <div class="gallery" id="gallery"></div>
+  </div>
+
+  <script>
+    const userPassword = "your_secure_password_here";
+    const adminPassword = "your_admin_password_here";
+    let currentUsername = "";
+
+    function checkPassword() {
+      const inputPassword = document.getElementById('password').value;
+      const inputUsername = document.getElementById('username').value;
+
+      if (!inputUsername.trim()) {
+        alert('Please enter your name');
+        return;
+      }
+
+      if (inputPassword === userPassword || inputPassword === adminPassword) {
+        currentUsername = inputUsername.trim();
+        document.getElementById('hidden-username').value = currentUsername;
+        document.getElementById('login-form').style.display = 'none';
+        document.getElementById('content').style.display = 'block';
+        document.getElementById('upload-section').style.display = 'block';
+        loadMedia();
+      } else {
+        alert('Incorrect password');
+      }
+    }
+
+    function logout() {
+      currentUsername = "";
+      document.getElementById('username').value = "";
+      document.getElementById('password').value = "";
+      document.getElementById('login-form').style.display = 'block';
+      document.getElementById('content').style.display = 'none';
+    }
+
+    function appendUsername(e) {
+      document.getElementById('hidden-username').value = currentUsername;
+    }
+
+    async function loadMedia() {
+      const res = await fetch('http://192.168.0.46:3000/media');
+      const mediaFiles = await res.json();
+      const gallery = document.getElementById('gallery');
+      gallery.innerHTML = "";
+      mediaFiles.forEach(file => {
+        const div = document.createElement('div');
+        div.className = 'gallery-item';
+
+        let content = '';
+        if (file.name.endsWith('.mp4') || file.name.endsWith('.webm')) {
+          content = `<video controls src="http://192.168.0.46:3000/media/${file.name}"></video>`;
+        } else {
+          content = `<a href="http://192.168.0.46:3000/media/${file.name}" download><img src="http://192.168.0.46:3000/media/${file.name}" /></a>`;
+        }
+
+        const uploader = file.uploader ? `<div class="uploader-name">Uploaded by: ${file.uploader}</div>` : '';
+        const uploadDate = file.date ? `<div class="upload-date">Date: ${new Date(file.date).toLocaleString()}</div>` : '';
+
+        div.innerHTML = content + uploader + uploadDate;
+        gallery.appendChild(div);
+      });
+    }
+  </script>
+</body>
+</html>
