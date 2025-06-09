@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Family Media Gallery</title>
   <style>
     body {
@@ -89,6 +89,7 @@
       height: auto;
       display: block;
       border-radius: 10px;
+      cursor: pointer;
     }
     .uploader-name {
       font-size: 0.9em;
@@ -109,6 +110,7 @@
       border: none;
       border-radius: 5px;
       cursor: pointer;
+      z-index: 100;
     }
     .logout-button:hover {
       background-color: #c82333;
@@ -139,17 +141,19 @@
     <button onclick="checkPassword()">Login</button>
   </div>
 
-  <div id="content" style="display: none">
+  <div id="content" style="display: none;">
     <button class="logout-button" onclick="logout()">Logout</button>
     <h2>Family Media Gallery</h2>
     <div class="gallery" id="gallery"></div>
-    <div id="upload-section" style="display: none">
+
+    <div id="upload-section" style="display: none;">
       <form class="upload" action="http://192.168.0.46:3000/upload" method="post" enctype="multipart/form-data" onsubmit="appendUsername(event)">
         <input type="file" name="media" accept="image/*,video/*" multiple required />
         <input type="hidden" name="username" id="hidden-username" />
         <button type="submit">Upload</button>
       </form>
     </div>
+
     <div id="admin-controls">
       <h3>Admin Controls</h3>
       <button onclick="alert('Admin control triggered!')">Change Passwords</button>
@@ -157,28 +161,30 @@
   </div>
 
   <script>
-    const userPassword = "user123";
-    const adminPassword = "admin123";
+    const userPassword = "user123";  // change to your user password
+    const adminPassword = "admin123"; // change to your admin password
     let currentUsername = "";
 
     function checkPassword() {
       const inputPassword = document.getElementById('password').value;
-      const inputUsername = document.getElementById('username').value;
+      const inputUsername = document.getElementById('username').value.trim();
 
-      if (!inputUsername.trim()) {
+      if (!inputUsername) {
         alert('Please enter your name');
         return;
       }
 
       if (inputPassword === userPassword || inputPassword === adminPassword) {
-        currentUsername = inputUsername.trim();
+        currentUsername = inputUsername;
         document.getElementById('hidden-username').value = currentUsername;
         document.getElementById('login-form').style.display = 'none';
         document.getElementById('upload-section').style.display = 'block';
         document.getElementById('content').style.display = 'block';
+
         if (inputPassword === adminPassword) {
           document.getElementById('admin-controls').style.display = 'block';
         }
+
         loadMedia();
       } else {
         alert('Incorrect password');
@@ -193,6 +199,7 @@
       document.getElementById('upload-section').style.display = 'none';
       document.getElementById('content').style.display = 'none';
       document.getElementById('admin-controls').style.display = 'none';
+      document.getElementById('gallery').innerHTML = '';
     }
 
     function appendUsername(e) {
@@ -200,28 +207,41 @@
     }
 
     async function loadMedia() {
-      const res = await fetch('http://192.168.0.46:3000/media');
-      const mediaFiles = await res.json();
-      const gallery = document.getElementById('gallery');
-      gallery.innerHTML = "";
-      mediaFiles.forEach(file => {
-        const div = document.createElement('div');
-        div.className = 'gallery-item';
+      try {
+        const res = await fetch('http://192.168.0.46:3000/media');
+        if (!res.ok) throw new Error('Failed to fetch media metadata');
+        const mediaFiles = await res.json();
 
-        let content = '';
-        if (file.name.endsWith('.mp4') || file.name.endsWith('.webm')) {
-          content = `<video controls src="http://192.168.0.46:3000/media/${file.name}"></video>`;
-        } else {
-          content = `<a href="http://192.168.0.46:3000/media/${file.name}" download><img src="http://192.168.0.46:3000/media/${file.name}" /></a>`;
-        }
+        const gallery = document.getElementById('gallery');
+        gallery.innerHTML = '';
 
-        const uploader = file.uploader ? `<div class="uploader-name">Uploaded by: ${file.uploader}</div>` : '';
-        const uploadDate = file.date ? `<div class="upload-date">Date: ${new Date(file.date).toLocaleString()}</div>` : '';
+        mediaFiles.forEach(file => {
+          const div = document.createElement('div');
+          div.className = 'gallery-item';
 
-        div.innerHTML = content + uploader + uploadDate;
-        gallery.appendChild(div);
-      });
+          const isVideo = file.name.match(/\.(mp4|webm|ogg)$/i);
+          let content = '';
+
+          if (isVideo) {
+            content = `<video controls src="http://192.168.0.46:3000/media/${file.name}"></video>`;
+          } else {
+            content = `<a href="http://192.168.0.46:3000/media/${file.name}" download>
+                         <img src="http://192.168.0.46:3000/media/${file.name}" alt="${file.originalName}" />
+                       </a>`;
+          }
+
+          const uploader = file.uploader ? `<div class="uploader-name">Uploaded by: ${file.uploader}</div>` : '';
+          const uploadDate = file.date ? `<div class="upload-date">Date: ${new Date(file.date).toLocaleString()}</div>` : '';
+
+          div.innerHTML = content + uploader + uploadDate;
+
+          gallery.appendChild(div);
+        });
+      } catch (error) {
+        console.error('Error loading media:', error);
+      }
     }
   </script>
 </body>
 </html>
+
