@@ -113,6 +113,22 @@
     .logout-button:hover {
       background-color: #c82333;
     }
+    #admin-controls {
+      display: none;
+      margin-top: 20px;
+      text-align: center;
+    }
+    #admin-controls button {
+      padding: 10px 20px;
+      background-color: #6f42c1;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #admin-controls button:hover {
+      background-color: #5936a2;
+    }
   </style>
 </head>
 <body>
@@ -126,19 +142,23 @@
   <div id="content" style="display: none">
     <button class="logout-button" onclick="logout()">Logout</button>
     <h2>Family Media Gallery</h2>
-    <div id="upload-section">
+    <div class="gallery" id="gallery"></div>
+    <div id="upload-section" style="display: none">
       <form class="upload" action="http://192.168.0.46:3000/upload" method="post" enctype="multipart/form-data" onsubmit="appendUsername(event)">
         <input type="file" name="media" accept="image/*,video/*" multiple required />
         <input type="hidden" name="username" id="hidden-username" />
         <button type="submit">Upload</button>
       </form>
     </div>
-    <div class="gallery" id="gallery"></div>
+    <div id="admin-controls">
+      <h3>Admin Controls</h3>
+      <button onclick="alert('Admin control triggered!')">Change Passwords</button>
+    </div>
   </div>
 
   <script>
-    const userPassword = "user123";
-    const adminPassword = "admin123";
+    const userPassword = "your_secure_password_here";
+    const adminPassword = "your_admin_password_here";
     let currentUsername = "";
 
     function checkPassword() {
@@ -154,8 +174,11 @@
         currentUsername = inputUsername.trim();
         document.getElementById('hidden-username').value = currentUsername;
         document.getElementById('login-form').style.display = 'none';
-        document.getElementById('content').style.display = 'block';
         document.getElementById('upload-section').style.display = 'block';
+        document.getElementById('content').style.display = 'block';
+        if (inputPassword === adminPassword) {
+          document.getElementById('admin-controls').style.display = 'block';
+        }
         loadMedia();
       } else {
         alert('Incorrect password');
@@ -167,7 +190,9 @@
       document.getElementById('username').value = "";
       document.getElementById('password').value = "";
       document.getElementById('login-form').style.display = 'block';
+      document.getElementById('upload-section').style.display = 'none';
       document.getElementById('content').style.display = 'none';
+      document.getElementById('admin-controls').style.display = 'none';
     }
 
     function appendUsername(e) {
